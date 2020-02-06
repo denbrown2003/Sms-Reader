@@ -15,7 +15,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import com.apptakk.http_request.HttpRequest;git status
+import com.apptakk.http_request.HttpRequest;
 import com.apptakk.http_request.HttpRequestTask;
 import com.apptakk.http_request.HttpResponse;
 import java.io.BufferedReader;
@@ -31,9 +31,6 @@ import java.util.concurrent.TimeUnit;
 class NewThread implements Runnable{
     public void run(){
         while(true) {
-
-
-
 
 
 
