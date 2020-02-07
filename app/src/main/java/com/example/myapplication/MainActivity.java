@@ -11,6 +11,7 @@ import android.telephony.SmsMessage;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -28,15 +29,12 @@ import java.util.concurrent.TimeUnit;
 
 
 
+
 class NewThread implements Runnable{
     public void run(){
         while(true) {
 
-
-
             System.out.println("thread is running...");
-
-
 
             try {
                 TimeUnit.SECONDS.sleep(10); }
@@ -44,6 +42,7 @@ class NewThread implements Runnable{
                 Thread.currentThread().interrupt(); }
         }
     }
+
 }
 
 public class MainActivity extends AppCompatActivity {
@@ -59,6 +58,9 @@ public class MainActivity extends AppCompatActivity {
     BufferedReader bufferedReader;
     Handler handler = new Handler();
     String message_from_server;
+    Thread checker;
+
+
 
 
     public static Object[] add(Object[] arr, Object... elements){
@@ -162,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
                         Object[] objArr = add(sms_arr, text);
                         sms_arr = objArr;
                         Log.i("log", text);
-                        SendSocket(text);
+                        SendSocket(text, 4444);
 
                     }
                 }
@@ -176,27 +178,72 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onMyButtonClick(View view) {
-        SendSocket("Connect OK");
+        SendSocket("Connect OK", 4444);
         Toast.makeText(this, "fffff", Toast.LENGTH_SHORT).show();
-        NewThread thread_1 = new NewThread();
-        Thread t1 =new Thread(thread_1);
-        t1.start();
+
     }
 
-    public void SendSocket(final String text){
+    public void StartButton(View view) {
+        System.out.println("Button start");
+        SendSocket("start", 4443);
+
+        try { TimeUnit.SECONDS.sleep(2); }
+        catch (
+            InterruptedException ex) {
+            Thread.currentThread().interrupt(); }
+
+        Runnable cmd_sender = new Runnable() {
+            @Override
+            public void run(){
+                while (true) {
+                     while(!Thread.currentThread().isInterrupted()) {
+
+                        System.out.println("thread is running...");
+                        SendSocket("check", 4443);
+
+                        try {
+                            TimeUnit.SECONDS.sleep(10);
+                        } catch (InterruptedException ex) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+                }
+        }};
+
+
+        checker = new Thread(cmd_sender);
+        checker.start();
+
+        TextView status = (TextView) findViewById(R.id.textView2);
+        status.setText("Running");
+
+    }
+
+    public void StopButton(View view) {
+        System.out.println("Button stop");
+        SendSocket("stop", 4443);
+        checker.interrupt();
+        TextView status = (TextView) findViewById(R.id.textView2);
+        status.setText("Stopped");
+
+    }
+
+
+    public void SendSocket(final String text, final int port){
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
                 try{
                     System.out.println(Arrays.toString(sms_arr));
 
-                    final EditText edit =  (EditText) findViewById(R.id.editText);
-                    String host = (String) edit.getText().toString();
+                    final EditText edit = findViewById(R.id.editText);
+                    String host = edit.getText().toString();
 
-                    final EditText edit2 =  (EditText) findViewById(R.id.editText2);
-                    String username = (String) edit2.getText().toString();
+                    final EditText edit2 =  findViewById(R.id.editText2);
+                    String username = edit2.getText().toString();
 
-                    s = new Socket(host , 4444);
+                    s = new Socket(host , port);
+
                     dos = new DataOutputStream(s.getOutputStream());
 
                     String message = "us:"+username+";"+text+";end#";
@@ -204,18 +251,22 @@ public class MainActivity extends AppCompatActivity {
                     dos.writeUTF(message);
 
                     dis = new DataInputStream(s.getInputStream());
+
                     message_from_server = dis.readUTF();
+
 
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
                             Toast.makeText(getApplicationContext(),"msg"+message_from_server, Toast.LENGTH_SHORT).show();
+
                         }
                     });
 
-
                     dos.close();
                     s.close();
+
+
 
                 }catch (IOException e){
                     e.printStackTrace();
@@ -234,6 +285,7 @@ public class MainActivity extends AppCompatActivity {
 
 
             }};
+
 
         Thread thread = new Thread(runnable);
         thread.start(); }
