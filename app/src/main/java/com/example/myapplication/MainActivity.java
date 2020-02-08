@@ -22,29 +22,24 @@ public class MainActivity extends AppCompatActivity {
     public static final int REQUEST_READ_SMS = 80;
     public static final int RECEIVE_SMS = 81;
     private BroadcastReceiver smsReceiver;
-    Object[] sms_arr = {};
-    Thread checker;
     Connector conn;
-
-
-    public static Object[] add(Object[] arr, Object... elements){
-        Object[] tempArr = new Object[arr.length+elements.length];
-        System.arraycopy(arr, 0, tempArr, 0, arr.length);
-
-        for(int i=0; i < elements.length; i++)
-            tempArr[arr.length+i] = elements[i];
-        return tempArr;
-
-    }
+    TextView status;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        String host = String.valueOf((EditText)findViewById(R.id.editText));
-        String username = String.valueOf((EditText)findViewById(R.id.editText2));
+        EditText  host_edit = findViewById(R.id.editText);
+        EditText  username_edit = findViewById(R.id.editText2);
 
-        conn = new Connector(username, host);
+        String host = host_edit.getText().toString();
+        String user = username_edit.getText().toString();
+
+        System.out.println(user);
+
+        status = findViewById(R.id.textView2);
+        conn = new Connector(user, host);
+        conn.main_status = status;
 
 
         // Проверка прав на получение смс
@@ -113,10 +108,9 @@ public class MainActivity extends AppCompatActivity {
                         byte[] pdu = (byte[])pdus[i];
                         SmsMessage message = SmsMessage.createFromPdu(pdu);
                         String text = message.getDisplayMessageBody();
-                        Object[] objArr = add(sms_arr, text);
-                        sms_arr = objArr;
-                        Log.i("log", text);
 
+                        conn.add_sms(text);
+                        Log.i("log", text);
                         conn.SendSocket(text, 4444);
 
                     }
@@ -132,6 +126,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void onMyButtonClick(View view) {
         Toast.makeText(this, "fffff", Toast.LENGTH_SHORT).show();
+        conn.SendSocket("hello", 4444);
+        Object[] sms = conn.sms_array;
+        System.out.println(sms.toString());
 
     }
 
@@ -145,9 +142,6 @@ public class MainActivity extends AppCompatActivity {
     public void StopButton(View view) {
         System.out.println("Button stop");
         conn.StopConnector();
-
-        TextView status = findViewById(R.id.textView2);
-        status.setText("Stopped");
 
     }
 
