@@ -20,9 +20,14 @@ import com.apptakk.http_request.HttpRequest;
 import com.apptakk.http_request.HttpRequestTask;
 import com.apptakk.http_request.HttpResponse;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -52,12 +57,9 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver smsReceiver;
     Object[] sms_arr = {};
 
-    Socket s;
-    DataOutputStream dos;
-    DataInputStream dis;
+
     BufferedReader bufferedReader;
     Handler handler = new Handler();
-    String message_from_server;
     Thread checker;
 
 
@@ -198,7 +200,6 @@ public class MainActivity extends AppCompatActivity {
                 while (true) {
                      while(!Thread.currentThread().isInterrupted()) {
 
-                        System.out.println("thread is running...");
                         SendSocket("check", 4443);
 
                         try {
@@ -214,20 +215,26 @@ public class MainActivity extends AppCompatActivity {
         checker = new Thread(cmd_sender);
         checker.start();
 
-        TextView status = (TextView) findViewById(R.id.textView2);
-        status.setText("Running");
-
     }
 
     public void StopButton(View view) {
         System.out.println("Button stop");
         SendSocket("stop", 4443);
         checker.interrupt();
-        TextView status = (TextView) findViewById(R.id.textView2);
+        TextView status = findViewById(R.id.textView2);
         status.setText("Stopped");
 
     }
 
+    public void get_command(final String text, final String response){
+
+        if(text == "check"){
+
+            TextView status = findViewById(R.id.textView2);
+            status.setText(response);
+        }
+
+    }
 
     public void SendSocket(final String text, final int port){
         Runnable runnable = new Runnable() {
@@ -236,13 +243,16 @@ public class MainActivity extends AppCompatActivity {
                 try{
                     System.out.println(Arrays.toString(sms_arr));
 
+
                     final EditText edit = findViewById(R.id.editText);
                     String host = edit.getText().toString();
 
                     final EditText edit2 =  findViewById(R.id.editText2);
                     String username = edit2.getText().toString();
 
-                    s = new Socket(host , port);
+                    Socket s = new Socket(host , port);
+
+                    DataOutputStream dos;
 
                     dos = new DataOutputStream(s.getOutputStream());
 
@@ -250,39 +260,32 @@ public class MainActivity extends AppCompatActivity {
 
                     dos.writeUTF(message);
 
-                    dis = new DataInputStream(s.getInputStream());
+                    try {
 
-                    message_from_server = dis.readUTF();
+                        InputStream stream1 = s.getInputStream();
+                        byte[] data = new byte[100];
+                        int count = stream1.read(data);
+                        String response = new String(data).substring(0, count);
+
+                        System.out.println(response);
+
+                        get_command(text, response);
 
 
-                    handler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(getApplicationContext(),"msg"+message_from_server, Toast.LENGTH_SHORT).show();
+                    }
+                    catch (EOFException e){
+                        System.out.println("error "+e.toString());
 
-                        }
-                    });
+                    }
 
                     dos.close();
                     s.close();
 
-
-
                 }catch (IOException e){
                     e.printStackTrace();
-                    Log.e("error", "error");}
-
-                long endTime = System.currentTimeMillis()
-                        + 20 * 1000;
-
-                while (System.currentTimeMillis() < endTime) {
-                    synchronized (this) {
-                        try {
-                            wait(endTime -
-                                    System.currentTimeMillis());
-                        } catch (Exception e) {Log.e("error", "error");} } }
-
-
+                    Log.e("error", "error");
+                    System.out.println(e.toString());
+                }
 
             }};
 
